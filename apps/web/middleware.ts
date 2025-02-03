@@ -1,4 +1,4 @@
-import { isInstallModeEnabled } from '@services/install/install'
+//import { isInstallModeEnabled } from '@services/install/install'
 import {
   LEARNHOUSE_DOMAIN,
   LEARNHOUSE_TOP_DOMAIN,
@@ -8,7 +8,8 @@ import {
 } from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
+import { getAPIUrl } from '@services/config/config'
+import { RequestBody, errorHandling } from '@services/utils/ts/requests'
 export const config = {
   matcher: [
     /*
@@ -25,7 +26,17 @@ export const config = {
     '/payments/stripe/connect/oauth',
   ],
 }
-
+export async function isInstallModeEnabled() {
+  const result = await fetch(
+    `${getAPIUrl()}install/latest`,
+    RequestBody('GET', null, null)
+  )
+  if (result.status === 200 || result.status === 404) {
+    return true
+  } else {
+    return false
+  }
+}
 export default async function middleware(req: NextRequest) {
   // Get initial data
   const hosting_mode = isMultiOrgModeEnabled() ? 'multi' : 'single'
