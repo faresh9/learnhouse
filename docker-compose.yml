@@ -3,24 +3,21 @@ services:
   app:
     build: .
     ports:
-      - "80:80"   # Exposes port 80 for the frontend (adjust as needed)
+      - "80:80"
     volumes:
       - .:/usr/learnhouse
     env_file:
-      - ./extra/example-learnhouse-conf.env   # Ensure this file includes the updated env vars for production
+      - ./extra/example-learnhouse-conf.env
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-      chromadb:
-        condition: service_healthy
-
   db:
     image: postgres:16-alpine
     restart: always
     ports:
-      - "5432:5432"   # Expose the database port (adjust as needed)
+      - "5432:5432"
     environment:
       - POSTGRES_USER=learnhouse
       - POSTGRES_PASSWORD=learnhouse
@@ -30,19 +27,17 @@ services:
       interval: 5s
       timeout: 4s
       retries: 5
-
   redis:
     image: redis:7.2.3
     restart: always
     ports:
-      - "6379:6379"   # Expose the Redis port (adjust as needed)
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 4s
       retries: 5
-
   chromadb:
     image: chromadb/chroma:0.5.16
     ports:
-      - "8000:8000"   # Expose the Chroma DB port (adjust as needed)
+      - "8000:8000"
