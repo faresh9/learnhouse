@@ -1,188 +1,14 @@
-export const LEARNHOUSE_HTTP_PROTOCOL =
-  process.env.NEXT_PUBLIC_LEARNHOUSE_HTTPS === 'true' ? 'https://' : 'http://'
-const LEARNHOUSE_API_URL = `${process.env.NEXT_PUBLIC_LEARNHOUSE_API_URL}`
-export const LEARNHOUSE_BACKEND_URL = `${process.env.NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL}`
-export const LEARNHOUSE_DOMAIN = process.env.NEXT_PUBLIC_LEARNHOUSE_DOMAIN
-export const LEARNHOUSE_TOP_DOMAIN =
-  process.env.NEXT_PUBLIC_LEARNHOUSE_TOP_DOMAIN
-
-export const getAPIUrl = () => LEARNHOUSE_API_URL
-export const getBackendUrl = () => LEARNHOUSE_BACKEND_URL
-
-export const isMultiOrgModeEnabled = () =>
-  process.env.NEXT_PUBLIC_LEARNHOUSE_MULTI_ORG === 'true' ? true : false
-
-export const getUriWithOrg = (orgslug: string, path: string) => {
-  const multi_org = isMultiOrgModeEnabled()
-  if (multi_org) {
-    return `${LEARNHOUSE_HTTP_PROTOCOL}${orgslug}.${LEARNHOUSE_DOMAIN}${path}`
-  }
-  return `${LEARNHOUSE_HTTP_PROTOCOL}${LEARNHOUSE_DOMAIN}${path}`
-}
-
-export const getUriWithoutOrg = (path: string) => {
-  const multi_org = isMultiOrgModeEnabled()
-  if (multi_org) {
-    return `${LEARNHOUSE_HTTP_PROTOCOL}${LEARNHOUSE_DOMAIN}${path}`
-  }
-  return `${LEARNHOUSE_HTTP_PROTOCOL}${LEARNHOUSE_DOMAIN}${path}`
-}
-
-export const getOrgFromUri = () => {
-  const multi_org = isMultiOrgModeEnabled()
-  if (multi_org) {
-    getDefaultOrg()
-  } else {
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname
-
-      return hostname.replace(`.${LEARNHOUSE_DOMAIN}`, '')
-    }
-  }
-}
-
-export const getDefaultOrg = () => {
-  return process.env.NEXT_PUBLIC_LEARNHOUSE_DEFAULT_ORG
-}
-
-export const RequestBody = (method: string, data: any, next: any) => {
-  let HeadersConfig = new Headers({ 'Content-Type': 'application/json' })
-  let options: any = {
-    method: method,
-    headers: HeadersConfig,
-    redirect: 'follow',
-    credentials: 'include',
-    next: next,
-  }
-  if (data) {
-    options.body = JSON.stringify(data)
-  }
-  return options
-}
-
-export const RequestBodyWithAuthHeader = (
-  method: string,
-  data: any,
-  next: any,
-  token?: string
-) => {
-  let HeadersConfig = new Headers(
-    token
-      ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-      : { 'Content-Type': 'application/json' }
-  )
-  let options: any = {
-    method: method,
-    headers: HeadersConfig,
-    redirect: 'follow',
-    credentials: 'include',
-    body: (method === 'POST' || method === 'PUT') ? JSON.stringify(data) : null,
-    next: next,
-  }
-  return options
-}
-
-export const RequestBodyForm = (method: string, data: any, next: any) => {
-  let HeadersConfig = new Headers({})
-  let options: any = {
-    method: method,
-    headers: HeadersConfig,
-    redirect: 'follow',
-    credentials: 'include',
-    body: (method === 'POST' || method === 'PUT') ? JSON.stringify(data) : null,
-    next: next,
-  }
-  return options
-}
-
-export const RequestBodyFormWithAuthHeader = (
-  method: string,
-  data: any,
-  next: any,
-  access_token: string
-) => {
-  let HeadersConfig = new Headers({
-    Authorization: `Bearer ${access_token}`,
-  })
-  let options: any = {
-    method: method,
-    headers: HeadersConfig,
-    redirect: 'follow',
-    credentials: 'include',
-    body: data,
-    next: next,
-  }
-  return options
-}
-
-export const swrFetcher = async (url: string, token?: string) => {
-  let HeadersConfig = new Headers(
-    token
-      ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-      : { 'Content-Type': 'application/json' }
-  )
-  let options: any = {
-    method: 'GET',
-    headers: HeadersConfig,
-    redirect: 'follow',
-    credentials: 'include',
-  }
-
-  try {
-    const request = await fetch(url, options)
-    let res = errorHandling(request)
-    return res
-  } catch (error: any) {
-    throw error
-  }
-}
-
-export const errorHandling = (res: any) => {
-  if (!res.ok) {
-    const error: any = new Error(`${res.statusText}`)
-    error.status = res.status
-    throw error
-  }
-  return res.json()
-}
-
-type CustomResponseTyping = {
-  success: boolean
-  data: any
-  status: number
-  HTTPmessage: string
-}
-
-export const getResponseMetadata = async (
-  fetch_result: any
-): Promise<CustomResponseTyping> => {
-  const json = await fetch_result.json()
-  if (fetch_result.status === 200) {
-    return {
-      success: true,
-      data: json,
-      status: fetch_result.status,
-      HTTPmessage: fetch_result.statusText,
-    }
-  } else {
-    return {
-      success: false,
-      data: json,
-      status: fetch_result.status,
-      HTTPmessage: fetch_result.statusText,
-    }
-  }
-}
-
-export const revalidateTags = async (tags: string[], orgslug: string) => {
-  const url = getUriWithOrg(orgslug, '')
-  tags.forEach((tag) => {
-    fetch(`${url}/api/revalidate?tag=${tag}`)
-  })
-}
-
+import { isInstallModeEnabled } from '@services/install/install'
+import {
+  LEARNHOUSE_DOMAIN,
+  LEARNHOUSE_TOP_DOMAIN,
+  getDefaultOrg,
+  getUriWithOrg,
+  isMultiOrgModeEnabled,
+} from './services/config/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+
 export const config = {
   matcher: [
     /*
@@ -199,17 +25,7 @@ export const config = {
     '/payments/stripe/connect/oauth',
   ],
 }
-export async function isInstallModeEnabled() {
-  const result = await fetch(
-    `${getAPIUrl()}install/latest`,
-    RequestBody('GET', null, null)
-  )
-  if (result.status === 200 || result.status === 404) {
-    return true
-  } else {
-    return false
-  }
-}
+
 export default async function middleware(req: NextRequest) {
   // Get initial data
   const hosting_mode = isMultiOrgModeEnabled() ? 'multi' : 'single'
