@@ -1,7 +1,7 @@
 # Base image
 FROM python:3.12.3-slim-bookworm as base
 
-# Install Nginx, curl, and build-essential
+# Install necessary dependencies
 RUN apt update && apt install -y nginx curl build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -14,10 +14,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash - \
 
 # Frontend Build
 FROM base AS deps
-
-ENV NEXT_PUBLIC_LEARNHOUSE_API_URL=http://localhost/api/v1/
-ENV NEXT_PUBLIC_LEARNHOUSE_BACKEND_URL=http://localhost/
-ENV NEXT_PUBLIC_LEARNHOUSE_DOMAIN=localhost
 
 WORKDIR /app/web
 COPY ./apps/web/package.json ./apps/web/pnpm-lock.yaml* ./
@@ -33,13 +29,14 @@ RUN addgroup --system --gid 1001 system \
     && adduser --system --uid 1001 app \
     && mkdir .next \
     && chown app:system .next
+
 COPY --from=deps /app/web/public ./app/web/public
 COPY --from=deps --chown=app:system /app/web/.next/standalone ./app/web/
 COPY --from=deps --chown=app:system /app/web/.next/static ./app/web/.next/static
 
 # Backend Build
 WORKDIR /app/api
-COPY ./apps/api/poetry.lock* ./
+COPY ./apps/api/poetry.lock* ./ 
 COPY ./apps/api/pyproject.toml ./
 RUN pip install --upgrade pip \
     && pip install poetry \
